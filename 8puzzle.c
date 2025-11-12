@@ -21,9 +21,8 @@ static inline double rand_unit() {
 }
 
 //Arrumar essa função, usar vetor[8/N*N-1] = {1,2,3,4,5,6,7,8}; para randomizar posições e povoar e a matriz aleatoriamente.
-void shuffle(char array[])
+void shuffle(int array[])
 {
-
     srand(time(NULL));
     for(int i = 0; i < N - 1; i++)
     {
@@ -34,14 +33,16 @@ void shuffle(char array[])
     }
 }
 
-void quebraArray(char array[9], char mp[TAM][TAM])
+void quebraArray(int mp[TAM][TAM])
 {
+    int v[N] = {-1,1,2,3,4,5,6,7,8};
+    shuffle(v);
     int cont = 0;
     for(int i = 0; i < TAM; i++)
     {
         for(int j = 0; j < TAM; j++)
         {
-            mp[i][j] = array[cont];
+            mp[i][j] = v[cont];
             cont++;
         }
     }
@@ -49,24 +50,11 @@ void quebraArray(char array[9], char mp[TAM][TAM])
 
 
 //Protótipo/Esqueleto do 8 - Puzzle manual
-/*void povoarM(char m[N][N])
-{
-    int aux[9] = {0,1,2,3,4,5,6,7,8};
-    int mp[N][N];
-    shuffle(aux);
-    quebraArray(aux,m);
-    for(int i = 0; i < N; i++)
-    {
-        for(int j = 0; j < N; i++)
-        {
-            
-        }
-    }
-}*/
-void acharP(char matrix[TAM][TAM],int pontoP[2]){
+
+void acharP(int matrix[TAM][TAM],int pontoP[2]){
     for(int i =0;i<TAM;i++){
         for(int j =0;j<TAM;j++){
-            if(matrix[i][j]=='.'){
+            if(matrix[i][j] == -1){
                 pontoP[0]=i;
                 pontoP[1]=j;
             }
@@ -75,32 +63,41 @@ void acharP(char matrix[TAM][TAM],int pontoP[2]){
     }
 
 }
-void achaM(int pos[4][2],char m[TAM][TAM],int pontoP[2]){
+
+void achaM(int pos[4][2],int m[TAM][TAM],int pontoP[2]){
     acharP(m,pontoP);
-    int aux[2];
-    for(int i = 0; i < 3; i++){
-        if(pontoP[0] + 1 != 3){
-            pos[i][0] = pontoP[0] + 1;
-        }
-        if(pontoP[0] - 1 >= 0){
-            pos[i][0] = pontoP[0] - 1;
-        }
-        if(pontoP[1] + 1 != 3){
-            pos[i][1] = pontoP[0] + 1;
-        }
-        if(pontoP[1] - 1 >= 0){
-            pos[i][1] = pontoP[0] - 1;
-        }
+    if(pontoP[0] + 1 < 3){
+        pos[0][0] = pontoP[0] + 1;
+        pos[0][1] = pontoP[1];
+    }
+    if(pontoP[0] - 1 >= 0){
+        pos[1][0] = pontoP[0] - 1;
+        pos[1][1] = pontoP[1];
+    }
+    if(pontoP[1] + 1 < 3){
+        pos[2][1] = pontoP[1] + 1;
+        pos[2][0] = pontoP[0];
+    }
+    if(pontoP[1] - 1 >= 0){
+        pos[3][1] = pontoP[1] - 1;
+        pos[3][0] = pontoP[0];
     }
 }
-void imprimirM(char m[TAM][TAM])
+
+void imprimirM(int m[TAM][TAM])
 {
     printf("-------------\n");
     for(int i = 0; i < TAM; i++)
     {
         for(int j = 0; j < TAM; j++)
         {
-            printf("| %c ",m[i][j]);
+            if(m[i][j] == -1){
+                printf("| . ");
+
+            }
+            else{
+                printf("| %d ",m[i][j]);
+            }
         }
         printf("|\n-------------\n");
     }
@@ -113,23 +110,25 @@ void andarJ(int cord[2]);
 int main()
 {
     int cordenadaPO[2];
-    char moviveis[4] = {' ',' ',' ',' '};
-    char tabu[TAM][TAM];
-    char v[N] = {'.','1','2','3','4','5','6','7','8'};
+    int moviveis[4] = {-1,-1,-1,-1};
+    int tabu[TAM][TAM];
+    int pos[4][2] = {{-1,-1},{-1,-1},{-1,-1},{-1,-1}};
     
+    quebraArray(tabu);
     
-    shuffle(v);
-    quebraArray(v,tabu);
-    for(int i =0;i<TAM;i++){
-        for(int j =0;j<TAM;j++){
-        printf("%c",tabu[i][j]);
-        }
-        printf("\n");
-    }
     imprimirM(tabu);
+    
     acharP(tabu,cordenadaPO);
+    achaM(pos, tabu, cordenadaPO);
     for(int i =0;i<2;i++){
-        printf("%d",cordenadaPO[i]);
+        printf("%d ",cordenadaPO[i]);
+    }
+    printf("\n");
+    for(int i =0;i<4;i++){
+        for(int j =0;j<2;j++){
+    
+            printf("%d ",pos[j][i]);
+        }
     }
     return 0;
 }
