@@ -7,8 +7,8 @@
 
 //Parâmetros
 
-#define N 3
-
+#define N 9
+#define TAM 3
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
     /* inteiro uniforme em [a,b] (assume a <= b) */
@@ -21,36 +21,66 @@ static inline double rand_unit() {
 }
 
 //Arrumar essa função, usar vetor[8/N*N-1] = {1,2,3,4,5,6,7,8}; para randomizar posições e povoar e a matriz aleatoriamente.
-int shuffle()
+void shuffle(char array[])
 {
-        int array[] = {1,2,3,4,5,6,7,8};
-        for(int i = 0; i < N - 1; i++) 
-        {
-          size_t j = i + rand() / (RAND_MAX / (N - i) + 1);
-          int t = array[j];
-          array[j] = array[i];
-          array[i] = t;
-        }
+
+    srand(time(NULL));
+    for(int i = 0; i < N - 1; i++)
+    {
+        size_t j = rand() / (RAND_MAX / (N - i) + 1);
+        int t = array[j];
+        array[j] = array[i];
+        array[i] = t;
+    }
 }
 
-//Protótipo/Esqueleto do 8 - Puzzle manual
-void povoarM(char m[N][N])
+void quebraArray(char array[9], char mp[TAM][TAM])
 {
-    for(int i = 0; i < N; i++)
+    int cont = 0;
+    for(int i = 0; i < TAM; i++)
     {
-        for(int j = 0; j < N; j++)
+        for(int j = 0; j < TAM; j++)
         {
-            m[i][j] = shuffle();
+            mp[i][j] = array[cont];
+            cont++;
         }
     }
 }
 
-void imprimirM(char m[N][N])
+//Protótipo/Esqueleto do 8 - Puzzle manual
+/*void povoarM(char m[N][N])
 {
-    printf("-------------\n");
+    int aux[9] = {0,1,2,3,4,5,6,7,8};
+    int mp[N][N];
+    shuffle(aux);
+    quebraArray(aux,m);
     for(int i = 0; i < N; i++)
     {
-        for(int j = 0; j < N; j++)
+        for(int j = 0; j < N; i++)
+        {
+            
+        }
+    }
+}*/
+void acharP(char matrix[TAM][TAM],int cordernadaP[2]){
+    for(int i =0;i<TAM;i++){
+        for(int j =0;j<TAM;j++){
+            if(matrix[i][j]=='.'){
+                cordernadaP[0]=i;
+                cordernadaP[1]=j;
+            }
+        }
+
+    }
+
+}
+
+void imprimirM(char m[TAM][TAM])
+{
+    printf("-------------\n");
+    for(int i = 0; i < TAM; i++)
+    {
+        for(int j = 0; j < TAM; j++)
         {
             printf("| %c ",m[i][j]);
             
@@ -65,13 +95,27 @@ void andarJ(int cord[2]);
 // Protótipo/Esqueleto do 8 - Puzzle 
 int main()
 {
-    char tabu[N][N];
+    int cordenadaPO[2];
+    char tab[TAM][TAM];
+    char tabu[TAM][TAM];
+    char v[9] = {'.','1','2','3','4','5','6','7','8'};
+    
     
     //{{'1','2','3'},{'4','5','6'},{'7','8','.'}};
-    povoarM(tabu);
-    imprimirM(tabu);
+    //povoarM(tabu);
     
-                        
-
+    shuffle(v);
+    quebraArray(v,tabu);
+    for(int i =0;i<TAM;i++){
+        for(int j =0;j<TAM;j++){
+        printf("%c",tabu[i][j]);
+        }
+        printf("\n");
+    }
+    imprimirM(tabu);
+    acharP(tabu,cordenadaPO);
+    for(int i =0;i<2;i++){
+        printf("%d",cordenadaPO[i]);
+    }
     return 0;
 }
