@@ -47,6 +47,7 @@ void quebraArray(char array[9], char mp[TAM][TAM])
     }
 }
 
+
 //Protótipo/Esqueleto do 8 - Puzzle manual
 /*void povoarM(char m[N][N])
 {
@@ -62,19 +63,36 @@ void quebraArray(char array[9], char mp[TAM][TAM])
         }
     }
 }*/
-void acharP(char matrix[TAM][TAM],int cordernadaP[2]){
+void acharP(char matrix[TAM][TAM],int pontoP[2]){
     for(int i =0;i<TAM;i++){
         for(int j =0;j<TAM;j++){
             if(matrix[i][j]=='.'){
-                cordernadaP[0]=i;
-                cordernadaP[1]=j;
+                pontoP[0]=i;
+                pontoP[1]=j;
             }
         }
 
     }
 
 }
-
+void achaM(int pos[4][2],char m[TAM][TAM],int pontoP[2]){
+    acharP(m,pontoP);
+    int aux[2];
+    for(int i = 0; i < 3; i++){
+        if(pontoP[0] + 1 != 3){
+            pos[i][0] = pontoP[0] + 1;
+        }
+        if(pontoP[0] - 1 >= 0){
+            pos[i][0] = pontoP[0] - 1;
+        }
+        if(pontoP[1] + 1 != 3){
+            pos[i][1] = pontoP[0] + 1;
+        }
+        if(pontoP[1] - 1 >= 0){
+            pos[i][1] = pontoP[0] - 1;
+        }
+    }
+}
 void imprimirM(char m[TAM][TAM])
 {
     printf("-------------\n");
@@ -83,7 +101,6 @@ void imprimirM(char m[TAM][TAM])
         for(int j = 0; j < TAM; j++)
         {
             printf("| %c ",m[i][j]);
-            
         }
         printf("|\n-------------\n");
     }
@@ -96,13 +113,10 @@ void andarJ(int cord[2]);
 int main()
 {
     int cordenadaPO[2];
-    char tab[TAM][TAM];
+    char moviveis[4] = {' ',' ',' ',' '};
     char tabu[TAM][TAM];
-    char v[9] = {'.','1','2','3','4','5','6','7','8'};
+    char v[N] = {'.','1','2','3','4','5','6','7','8'};
     
-    
-    //{{'1','2','3'},{'4','5','6'},{'7','8','.'}};
-    //povoarM(tabu);
     
     shuffle(v);
     quebraArray(v,tabu);
