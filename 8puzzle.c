@@ -9,6 +9,10 @@
 
 #define N 9
 #define TAM 3
+
+
+int possiveis = 0;
+
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
     /* inteiro uniforme em [a,b] (assume a <= b) */
@@ -64,24 +68,29 @@ void acharP(int matrix[TAM][TAM],int pontoP[2]){
 
 }
 
-void achaM(int pos[4][2],int m[TAM][TAM],int pontoP[2]){
+void verificaMoviveis(){
+    
+}
+
+
+void achaM(int pos[possiveis][2],int m[TAM][TAM],int pontoP[2]){
     acharP(m,pontoP);
-    if(pontoP[0] + 1 < 3){
+    //if(pontoP[0] + 1 < 3){
         pos[0][0] = pontoP[0] + 1;
         pos[0][1] = pontoP[1];
-    }
-    if(pontoP[0] - 1 >= 0){
+    //}
+    //if(pontoP[0] - 1 >= 0){
         pos[1][0] = pontoP[0] - 1;
         pos[1][1] = pontoP[1];
-    }
-    if(pontoP[1] + 1 < 3){
+    //}
+    //if(pontoP[1] + 1 < 3){
         pos[2][1] = pontoP[1] + 1;
         pos[2][0] = pontoP[0];
-    }
-    if(pontoP[1] - 1 >= 0){
+    //}
+    //if(pontoP[1] - 1 >= 0){
         pos[3][1] = pontoP[1] - 1;
         pos[3][0] = pontoP[0];
-    }
+    //}
 }
 
 void imprimirM(int m[TAM][TAM])
@@ -109,10 +118,11 @@ void andarJ(int cord[2]);
 // Protótipo/Esqueleto do 8 - Puzzle 
 int main()
 {
+    /*
     int cordenadaPO[2];
     int moviveis[4] = {-1,-1,-1,-1};
     int tabu[TAM][TAM];
-    int pos[4][2] = {{-1,-1},{-1,-1},{-1,-1},{-1,-1}};
+    int pos[4][2];
     
     quebraArray(tabu);
     
@@ -130,5 +140,7 @@ int main()
             printf("%d ",pos[j][i]);
         }
     }
+    */
+    printf("%d", possiveis);
     return 0;
 }
