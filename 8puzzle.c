@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
+#include <unistd.h>
 
 //Parâmetros
 
@@ -11,7 +12,11 @@
 #define TAM 3
 
 
-int possiveis = 0;
+typedef struct numeros{
+    int pos[2];
+    int info;
+    char direc;
+} possivel;
 
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
@@ -73,24 +78,36 @@ void verificaMoviveis(){
 }
 
 
-void achaM(int pos[possiveis][2],int m[TAM][TAM],int pontoP[2]){
+void achaM(int pos[4][2],int m[TAM][TAM],int pontoP[2],int moviveis[4], possivel p[4]){
     acharP(m,pontoP);
-    //if(pontoP[0] + 1 < 3){
-        pos[0][0] = pontoP[0] + 1;
-        pos[0][1] = pontoP[1];
-    //}
-    //if(pontoP[0] - 1 >= 0){
-        pos[1][0] = pontoP[0] - 1;
-        pos[1][1] = pontoP[1];
-    //}
-    //if(pontoP[1] + 1 < 3){
-        pos[2][1] = pontoP[1] + 1;
-        pos[2][0] = pontoP[0];
-    //}
-    //if(pontoP[1] - 1 >= 0){
-        pos[3][1] = pontoP[1] - 1;
-        pos[3][0] = pontoP[0];
-    //}
+    int linha = pontoP[0];
+    int coluna = pontoP[1];
+    
+    if(linha + 1 < 3){
+        p[0].pos[0] = linha + 1;
+        p[0].pos[1] = coluna;
+    }
+    if(linha - 1 >= 0){
+        p[1].pos[0] = linha - 1;
+        p[1].pos[1] = coluna;
+    }
+    if(coluna + 1 < 3){
+        p[2].pos[1] = coluna + 1;
+        p[2].pos[0] = linha;
+    }
+    if(coluna - 1 >= 0){
+        p[3].pos[1] = coluna - 1;
+        p[3].pos[0] = linha;
+    }
+    
+    for(int i = 0; i < 4; i++)
+    {
+        if(p[i].pos[0] > 2 || p[i].pos[0] < 0 && p[i].pos[1] > 2 || p[i].pos[1] < 0){
+            moviveis[i] = -1;
+        } else{
+            moviveis[i] = m[p[i].pos[0]][p[i].pos[1]];
+        }
+    }
 }
 
 void imprimirM(int m[TAM][TAM])
@@ -112,35 +129,74 @@ void imprimirM(int m[TAM][TAM])
     }
 }
 
-void andarJ(int cord[2]);
-
-
+void mostrarM(int moviveis[4]){
+    printf("\nAs posições possíveis são:");
+    for(int i = 0; i < 4; i++){
+        if(moviveis[i] > 0){
+            printf("\n%d",moviveis[i]);
+        }
+    }
+}
+/*
+void andarJ(int moviveis[4], matrizz[TAM][TAM){
+    
+    switch(num)
+    {
+        case moviveis[0]:
+        v[0] -= 1;
+        break;
+        
+        case moviveis[1]:
+        v[0] += 1;
+        break;
+        
+        case moviveis[2]:
+        if()
+        break;
+        
+        case moviveis[3]:
+        v[1] -= 1;
+        break;
+        
+        default :
+        break;
+    }
+}
+}
+*/
+ 
 // Protótipo/Esqueleto do 8 - Puzzle 
 int main()
 {
-    /*
+    
     int cordenadaPO[2];
-    int moviveis[4] = {-1,-1,-1,-1};
+    int moviveis[4];
     int tabu[TAM][TAM];
     int pos[4][2];
+    possivel p[4];
     
     quebraArray(tabu);
     
     imprimirM(tabu);
     
     acharP(tabu,cordenadaPO);
-    achaM(pos, tabu, cordenadaPO);
-    for(int i =0;i<2;i++){
+    achaM(pos, tabu, cordenadaPO, moviveis, p);
+
+     for(int i =0;i<2;i++){
         printf("%d ",cordenadaPO[i]);
     }
     printf("\n");
     for(int i =0;i<4;i++){
         for(int j =0;j<2;j++){
     
-            printf("%d ",pos[j][i]);
+            printf("%d ",p[i].pos[j]);
         }
     }
-    */
-    printf("%d", possiveis);
+    mostrarM(moviveis);
+    
+    
+    printf("\n");
+    //sleep(10);
+    //system("clear");
     return 0;
 }
