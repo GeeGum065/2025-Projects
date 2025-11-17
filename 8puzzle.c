@@ -75,16 +75,17 @@ void acharP(int matrix[TAM][TAM],int pontoP[2]){
 
 bool verificaSolucao(int v[9]){
     int aux[8];
-    int k = 0;
+    int k = 0, c = 0;
     int cont = 0;
-    while(k < 8){
-        if(v[i] != -1){
-            aux[i] == v[i];
-            k++;
+    while(k < 9){
+        if(v[c] != -1){
+            aux[c] = v[c];
+            c++;
         }
-        else{
-            continue;
-        }
+        k++;
+    }
+    for(int i = 0; i < 8; i++){
+        printf("%d\n", aux[i]);
     }
     
     for(int i = 0; i < 8; i ++){
