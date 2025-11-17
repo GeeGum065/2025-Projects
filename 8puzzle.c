@@ -73,8 +73,31 @@ void acharP(int matrix[TAM][TAM],int pontoP[2]){
 
 }
 
-void verificaMoviveis(){
+bool verificaSolucao(int v[9]){
+    int aux[8];
+    int k = 0;
+    int cont = 0;
+    while(k < 8){
+        if(v[i] != -1){
+            aux[i] == v[i];
+            k++;
+        }
+        else{
+            continue;
+        }
+    }
     
+    for(int i = 0; i < 8; i ++){
+        for(int j = i; j < 8; j++){
+            if(aux[i] < aux[j]){
+            cont++;
+        }
+        }
+    }
+    if(cont % 2 == 0){
+        return true;
+    }
+    return false;
 }
 
 
@@ -177,11 +200,11 @@ int main()
     
     quebraArray(tabu);
     
-    imprimirM(tabu);
+
     
     acharP(tabu,cordenadaPO);
     achaM(pos, tabu, cordenadaPO, moviveis, p);
-
+    imprimirM(tabu);
      for(int i =0;i<2;i++){
         printf("%d ",cordenadaPO[i]);
     }
