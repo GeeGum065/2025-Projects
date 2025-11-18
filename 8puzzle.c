@@ -7,45 +7,39 @@
 #include <unistd.h>
 
 //Parâmetros
-
 #define N 9
 #define TAM 3
 
-
-typedef struct numeros{
-    int pos[2];
-    int info;
-    char direc;
-} possivel;
-
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
-    /* inteiro uniforme em [a,b] (assume a <= b) */
     return a + rand() % (b - a + 1);
 }
 
 static inline double rand_unit() {
-    /* real uniforme em [0,1) */
     return (double)rand() / (double)(RAND_MAX);
 }
 
-//Arrumar essa função, usar vetor[8/N*N-1] = {1,2,3,4,5,6,7,8}; para randomizar posições e povoar e a matriz aleatoriamente.
-void shuffle(int array[])
+//Jogo
+typedef struct state{
+    int tabu[TAM][TAM];
+    int posp[2];
+    int prof;
+}state;
+void randArray(int array[])
 {
-    srand(time(NULL));
-    for(int i = 0; i < N - 1; i++)
+    for(int i = N - 1; i > 0; i--)
     {
-        size_t j = rand() / (RAND_MAX / (N - i) + 1);
+        int j = rand() % (i + 1);
         int t = array[j];
         array[j] = array[i];
         array[i] = t;
     }
 }
 
-void quebraArray(int mp[TAM][TAM])
+void criaTabu(int mp[TAM][TAM])
 {
     int v[N] = {-1,1,2,3,4,5,6,7,8};
-    shuffle(v);
+    randArray(v);
     int cont = 0;
     for(int i = 0; i < TAM; i++)
     {
@@ -57,170 +51,237 @@ void quebraArray(int mp[TAM][TAM])
     }
 }
 
-
-//Protótipo/Esqueleto do 8 - Puzzle manual
-
-void acharP(int matrix[TAM][TAM],int pontoP[2]){
-    for(int i =0;i<TAM;i++){
-        for(int j =0;j<TAM;j++){
+void acharVazio(int matrix[TAM][TAM],int pontoVazio[2]){
+    for(int i = 0; i < TAM; i++){
+        for(int j = 0; j < TAM; j++){
             if(matrix[i][j] == -1){
-                pontoP[0]=i;
-                pontoP[1]=j;
+                pontoVazio[0] = i;
+                pontoVazio[1] = j;
             }
         }
-
     }
-
 }
 
-bool verificaSolucao(int v[9]){
+//(inversões pares)
+bool verificaSolucao(int array[9]){
     int aux[8];
-    int k = 0, c = 0;
+    int k = 0;
+    
+    for(int i = 0; i < 9; i++){
+        if(array[i] != -1){
+            aux[k] = array[i];
+            k++;
+        }
+    }
+    
     int cont = 0;
-    while(k < 9){
-        if(v[c] != -1){
-            aux[c] = v[c];
-            c++;
-        }
-        k++;
-    }
     for(int i = 0; i < 8; i++){
-        printf("%d\n", aux[i]);
+        for(int j = i + 1; j < 8; j++){
+            if(aux[i] > aux[j]){
+                cont++;
+            }
+        }
     }
     
-    for(int i = 0; i < 8; i ++){
-        for(int j = i; j < 8; j++){
-            if(aux[i] < aux[j]){
-            cont++;
-        }
-        }
-    }
-    if(cont % 2 == 0){
-        return true;
-    }
-    return false;
+    return (cont % 2 == 0);
 }
 
 
-void achaM(int pos[4][2],int m[TAM][TAM],int pontoP[2],int moviveis[4], possivel p[4]){
-    acharP(m,pontoP);
-    int linha = pontoP[0];
-    int coluna = pontoP[1];
+void achaMoviveis(int pos[4][2], int m[TAM][TAM], int pontoVazio[2], int moviveis[4]){
+    acharVazio(m, pontoVazio);
+    int linha = pontoVazio[0];
+    int coluna = pontoVazio[1];
     
-    if(linha + 1 < 3){
-        p[0].pos[0] = linha + 1;
-        p[0].pos[1] = coluna;
+    // Inicializa todas as posições como inválidas
+    for(int i = 0; i < 4; i++){
+        pos[i][0] = -1;
+        pos[i][1] = -1;
+        moviveis[i] = -1;
     }
+    
+    // Baixo
+    if(linha + 1 < TAM){
+        pos[0][0] = linha + 1;
+        pos[0][1] = coluna;
+        moviveis[0] = m[linha + 1][coluna];
+    }
+    
+    // Cima
     if(linha - 1 >= 0){
-        p[1].pos[0] = linha - 1;
-        p[1].pos[1] = coluna;
-    }
-    if(coluna + 1 < 3){
-        p[2].pos[1] = coluna + 1;
-        p[2].pos[0] = linha;
-    }
-    if(coluna - 1 >= 0){
-        p[3].pos[1] = coluna - 1;
-        p[3].pos[0] = linha;
+        pos[1][0] = linha - 1;
+        pos[1][1] = coluna;
+        moviveis[1] = m[linha - 1][coluna];
     }
     
-    for(int i = 0; i < 4; i++)
-    {
-        if(p[i].pos[0] > 2 || p[i].pos[0] < 0 && p[i].pos[1] > 2 || p[i].pos[1] < 0){
-            moviveis[i] = -1;
-        } else{
-            moviveis[i] = m[p[i].pos[0]][p[i].pos[1]];
-        }
+    // Direita
+    if(coluna + 1 < TAM){
+        pos[2][0] = linha;
+        pos[2][1] = coluna + 1;
+        moviveis[2] = m[linha][coluna + 1];
+    }
+    
+    // Esquerda
+    if(coluna - 1 >= 0){
+        pos[3][0] = linha;
+        pos[3][1] = coluna - 1;
+        moviveis[3] = m[linha][coluna - 1];
     }
 }
 
-void imprimirM(int m[TAM][TAM])
+void imprimirTabu(int m[TAM][TAM])
 {
-    printf("-------------\n");
+    printf("\n-------------\n");
     for(int i = 0; i < TAM; i++)
     {
         for(int j = 0; j < TAM; j++)
         {
             if(m[i][j] == -1){
                 printf("| . ");
-
             }
             else{
-                printf("| %d ",m[i][j]);
+                printf("| %d ", m[i][j]);
             }
         }
         printf("|\n-------------\n");
     }
 }
 
-void mostrarM(int moviveis[4]){
-    printf("\nAs posições possíveis são:");
+//Jogador:
+
+void mostrarMoviveis(int moviveis[4]){
+    printf("\nPeças que você pode mover: ");
+    bool primeiro = true;
     for(int i = 0; i < 4; i++){
         if(moviveis[i] > 0){
-            printf("\n%d",moviveis[i]);
+            if(!primeiro) printf(", ");
+            printf("%d", moviveis[i]);
+            primeiro = false;
+        }
+    }
+    printf("\n");
+}
+
+//Verifica se o número escolhido é válido
+bool numeroValido(int num, int moviveis[4]){
+    for(int i = 0; i < 4; i++){
+        if(moviveis[i] == num){
+            return true;
+        }
+    }
+    return false;
+}
+void moverPecaCringe(int m[TAM][TAM], int posp[2]){
+    
+}
+
+
+
+
+
+//Movimenta a peça escolhida
+void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pontoP[2]){
+    for(int i = 0; i < 4; i++){
+        if(moviveis[i] == num){
+            // Troca a posição do -1 com o número escolhido
+            m[pontoP[0]][pontoP[1]] = num;
+            m[pos[i][0]][pos[i][1]] = -1;
+            return;
         }
     }
 }
-/*
-void andarJ(int moviveis[4], matrizz[TAM][TAM){
+
+//Verifica se o jogador venceu
+bool verificaVitoria(int m[TAM][TAM]){
+    int esperado[TAM][TAM] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, -1}
+    };
     
-    switch(num)
-    {
-        case moviveis[0]:
-        v[0] -= 1;
-        break;
-        
-        case moviveis[1]:
-        v[0] += 1;
-        break;
-        
-        case moviveis[2]:
-        if()
-        break;
-        
-        case moviveis[3]:
-        v[1] -= 1;
-        break;
-        
-        default :
-        break;
+    for(int i = 0; i < TAM; i++){
+        for(int j = 0; j < TAM; j++){
+            if(m[i][j] != esperado[i][j]){
+                return false;
+            }
+        }
     }
+    return true;
 }
-}
-*/
- 
-// Protótipo/Esqueleto do 8 - Puzzle 
+
+//A*:
+
 int main()
 {
+    srand(time(NULL));
     
     int cordenadaPO[2];
     int moviveis[4];
-    int tabu[TAM][TAM];
+    int tabuleiro[TAM][TAM];
     int pos[4][2];
-    possivel p[4];
+    int escolha;
+    int movimentos = 0;
+    int v[N];
     
-    quebraArray(tabu);
-    
-
-    
-    acharP(tabu,cordenadaPO);
-    achaM(pos, tabu, cordenadaPO, moviveis, p);
-    imprimirM(tabu);
-     for(int i =0;i<2;i++){
-        printf("%d ",cordenadaPO[i]);
-    }
-    printf("\n");
-    for(int i =0;i<4;i++){
-        for(int j =0;j<2;j++){
-    
-            printf("%d ",p[i].pos[j]);
+    // Gera tabuleiro solucionável
+    do {
+        criaTabu(tabuleiro);
+        int k = 0;
+        for(int i = 0; i < TAM; i++){
+            for(int j = 0; j < TAM; j++){
+                v[k] = tabuleiro[i][j];
+                k++;
+            }
         }
+    } while(!verificaSolucao(v));
+    
+    printf("=== 8-PUZZLE ===\n");
+    printf("Objetivo: Organize os números de 1 a 8 em ordem.\n");
+    printf("Configuração final:\n");
+    printf("-------------\n");
+    printf("| 1 | 2 | 3 |\n");
+    printf("-------------\n");
+    printf("| 4 | 5 | 6 |\n");
+    printf("-------------\n");
+    printf("| 7 | 8 | . |\n");
+    printf("-------------\n\n");
+    
+    // Loop principal do jogo
+    while(true){
+        imprimirTabu(tabuleiro);
+        
+        // Verifica vitória
+        if(verificaVitoria(tabuleiro)){
+            printf("\nVocê venceu em %d movimentos!\n\n", movimentos);
+            break;
+        }
+        
+        // Encontra movimentos possíveis
+        achaMoviveis(pos, tabuleiro, cordenadaPO, moviveis);
+        mostrarMoviveis(moviveis);
+        
+        // Solicita jogada
+        printf("\nDigite o número que deseja mover (0 para sair): ");
+        if(scanf("%d", &escolha) != 1){
+            printf("Entrada inválida!\n");
+            while(getchar() != '\n');
+            continue;
+        }
+        
+        if(escolha == 0){
+            printf("Jogo encerrado. Você fez %d movimentos.\n", movimentos);
+            break;
+        }
+        
+        // Valida e executa movimento
+        if(numeroValido(escolha, moviveis)){
+            moverPeca(tabuleiro, escolha, moviveis, pos, cordenadaPO);
+            movimentos++;
+        } else {
+            printf("\nO número %d não pode ser movido!\n", escolha);
+            sleep(2);
+        }
+        system("clear");
     }
-    mostrarM(moviveis);
     
-    
-    printf("\n");
-    //sleep(10);
-    //system("clear");
     return 0;
 }
