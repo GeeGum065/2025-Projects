@@ -170,13 +170,36 @@ bool numeroValido(int num, int moviveis[4]){
     }
     return false;
 }
-void moverPecaCringe(int m[TAM][TAM], int posp[2]){
+void moverPecaCringe(int m[TAM][TAM], int moviveis[4], int pos[4][2], int pontoP[2], char movimento){
+    int num;
+    switch(movimento){
+    case 's':
+        pontoP[0]++;
+        num=pos;
+        break;
+    case 'd':
+        pontoP[1]++;
+        num=m[pontoP[0]][pontoP[1]];
+        break;
+    case 'w':
+        pontoP[0]--;
+        num=m[pontoP[0]][pontoP[1]];
+        break;
+    case 'a':
+        pontoP[1]--;
+        num=m[pontoP[0]][pontoP[1]];
+        break;
+    }
+    for(int i = 0;i<4;i++){
+        if(moviveis[i] == num){
+        m[pontoP[0]][pontoP[1]] = num;
+        m[pos[i][0]][pos[i][1]] = -1;
+        return;
+    }
     
+
 }
-
-
-
-
+}
 
 //Movimenta a peça escolhida
 void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pontoP[2]){
@@ -218,7 +241,7 @@ int main()
     int moviveis[4];
     int tabuleiro[TAM][TAM];
     int pos[4][2];
-    int escolha;
+    char escolha;
     int movimentos = 0;
     int v[N];
     
@@ -261,25 +284,26 @@ int main()
         
         // Solicita jogada
         printf("\nDigite o número que deseja mover (0 para sair): ");
-        if(scanf("%d", &escolha) != 1){
-            printf("Entrada inválida!\n");
+        scanf("%d", &escolha);
+           //printf("Entrada inválida!\n");
             while(getchar() != '\n');
             continue;
-        }
+        //}
         
-        if(escolha == 0){
+        /*if(escolha == 0){
             printf("Jogo encerrado. Você fez %d movimentos.\n", movimentos);
             break;
-        }
-        
+        }*/
+        moverPecaCringe(tabuleiro, moviveis, pos, cordenadaPO, escolha);
+        movimentos++;
         // Valida e executa movimento
-        if(numeroValido(escolha, moviveis)){
-            moverPeca(tabuleiro, escolha, moviveis, pos, cordenadaPO);
+        /*if(numeroValido(escolha, moviveis)){
+            moverPecaCringe(tabuleiro, escolha, moviveis, pos, cordenadaPO);
             movimentos++;
         } else {
             printf("\nO número %d não pode ser movido!\n", escolha);
             sleep(2);
-        }
+        }*/
         system("clear");
     }
     
