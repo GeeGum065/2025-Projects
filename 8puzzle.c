@@ -9,6 +9,7 @@
 //Parâmetros
 #define N 9
 #define TAM 3
+#define MAX 5
 
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
@@ -18,13 +19,89 @@ static inline int rand_int(int a, int b) {
 static inline double rand_unit() {
     return (double)rand() / (double)(RAND_MAX);
 }
+typedef struct no
+{
+    int info;
+    struct no *prox;
+}No;
+
+typedef struct pilha
+{
+   No *Topo;
+}Pilha;
+
+int vaziaPilha(Pilha *p)
+{
+    if (p->Topo==NULL)
+    {
+        return 1; //pilha vazia
+    }
+    return 0;
+}
+
+Pilha* CriaPilha (void)
+{
+     Pilha *p;
+     p=(Pilha*)malloc(sizeof(Pilha));
+     p->Topo = NULL;
+   return p;
+}
+
+No* ins_ini (No* t, int a)
+{
+    No* aux = (No*) malloc(sizeof(No));
+    aux->info = a;
+    aux->prox = t;
+    return aux;
+}
+
+void push (Pilha* p, int v)
+{
+    p->Topo = ins_ini(p->Topo,v);
+}
+
+No* ret_ini (No* aux)
+{
+    No* p = aux->prox;
+    free(aux);
+    return p;
+}
+
+int pop (Pilha *p)
+{
+    int v;
+    if (vaziaPilha(p))
+    {
+        printf("\n\n\t==> Pilha VAZIA, IMPOSSIVEL CONTINUAR.\b\n");
+        exit(1); /* aborta programa */
+    }
+    v = p->Topo->info;
+    p->Topo = ret_ini(p->Topo);
+    return v;
+}
+
+Pilha* liberaPilha (Pilha *p) //APAGA TODA PILHA
+{
+    No *q = p->Topo;
+    while (q!=NULL)
+    {
+        No* t = q->prox;
+        free(q);
+        q = t;
+    }
+    free(p);
+    return(NULL);
+}
 
 //Jogo
 typedef struct state{
     int tabu[TAM][TAM];
-    int posp[2];
-    int prof;
+    int moviveis[4];
+    int posmoviveis[4][2];
+    struct state prox*;
+    int prof=0;
 }state;
+
 void randArray(int array[])
 {
     for(int i = N - 1; i > 0; i--)
@@ -170,36 +247,6 @@ bool numeroValido(int num, int moviveis[4]){
     }
     return false;
 }
-void moverPecaCringe(int m[TAM][TAM], int moviveis[4], int pos[4][2], int pontoP[2], char movimento){
-    int num;
-    switch(movimento){
-    case 's':
-        pontoP[0]++;
-        num=pos;
-        break;
-    case 'd':
-        pontoP[1]++;
-        num=m[pontoP[0]][pontoP[1]];
-        break;
-    case 'w':
-        pontoP[0]--;
-        num=m[pontoP[0]][pontoP[1]];
-        break;
-    case 'a':
-        pontoP[1]--;
-        num=m[pontoP[0]][pontoP[1]];
-        break;
-    }
-    for(int i = 0;i<4;i++){
-        if(moviveis[i] == num){
-        m[pontoP[0]][pontoP[1]] = num;
-        m[pos[i][0]][pos[i][1]] = -1;
-        return;
-    }
-    
-
-}
-}
 
 //Movimenta a peça escolhida
 void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pontoP[2]){
@@ -212,7 +259,21 @@ void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pon
         }
     }
 }
-
+void iddfs(state Estado, ){
+    int pontop[2], posmoviveis[4][2];
+    acharVazio(Estado->tabu,pontop);
+    achaMoviveis(posmoviveis,Estado->tabu,pontop,Estado->moviveis);
+    while(Estado->prof<MAX){
+        for(int i =1;i<10;i++){
+            if(numeroValido(i,Estado->moviveis)){
+                moverPeca(Estado->tabu,i,Estado->moviveis,posmoviveis);
+                
+            }
+        }
+        
+        Estado->prof++;
+    }
+}
 //Verifica se o jogador venceu
 bool verificaVitoria(int m[TAM][TAM]){
     int esperado[TAM][TAM] = {
@@ -241,7 +302,7 @@ int main()
     int moviveis[4];
     int tabuleiro[TAM][TAM];
     int pos[4][2];
-    char escolha;
+    int escolha;
     int movimentos = 0;
     int v[N];
     
@@ -284,26 +345,25 @@ int main()
         
         // Solicita jogada
         printf("\nDigite o número que deseja mover (0 para sair): ");
-        scanf("%d", &escolha);
-           //printf("Entrada inválida!\n");
+        if(scanf("%d", &escolha) != 1){
+            printf("Entrada inválida!\n");
             while(getchar() != '\n');
             continue;
-        //}
+        }
         
-        /*if(escolha == 0){
+        if(escolha == 0){
             printf("Jogo encerrado. Você fez %d movimentos.\n", movimentos);
             break;
-        }*/
-        moverPecaCringe(tabuleiro, moviveis, pos, cordenadaPO, escolha);
-        movimentos++;
+        }
+        
         // Valida e executa movimento
-        /*if(numeroValido(escolha, moviveis)){
-            moverPecaCringe(tabuleiro, escolha, moviveis, pos, cordenadaPO);
+        if(numeroValido(escolha, moviveis)){
+            moverPeca(tabuleiro, escolha, moviveis, pos, cordenadaPO);
             movimentos++;
         } else {
             printf("\nO número %d não pode ser movido!\n", escolha);
             sleep(2);
-        }*/
+        }
         system("clear");
     }
     
