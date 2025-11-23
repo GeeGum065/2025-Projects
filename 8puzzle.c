@@ -21,7 +21,7 @@ static inline double rand_unit() {
 }
 typedef struct no
 {
-    int info;
+    struct info;
     struct no *prox;
 }No;
 
@@ -47,7 +47,7 @@ Pilha* CriaPilha (void)
    return p;
 }
 
-No* ins_ini (No* t, int a)
+No* ins_ini (No* t, state a)
 {
     No* aux = (No*) malloc(sizeof(No));
     aux->info = a;
@@ -55,7 +55,7 @@ No* ins_ini (No* t, int a)
     return aux;
 }
 
-void push (Pilha* p, int v)
+void push (Pilha* p, state v)
 {
     p->Topo = ins_ini(p->Topo,v);
 }
@@ -67,7 +67,7 @@ No* ret_ini (No* aux)
     return p;
 }
 
-int pop (Pilha *p)
+state pop (Pilha *p)
 {
     int v;
     if (vaziaPilha(p))
@@ -93,15 +93,124 @@ Pilha* liberaPilha (Pilha *p) //APAGA TODA PILHA
     return(NULL);
 }
 
+/* FUNÇÕES DE MANIPULAÇÃO DE PFILA
+
+Fila* CriaFila()  CRIA A FILA
+
+int VaziaFila (Fila* f) VERIFICA SE A FILA ESTÁ VAIZA
+
+void InsereFila (Fila* f, int v) INSERÇÃO
+
+int RetiraFila (Fila* f) REMOÇÃO
+
+Fila* liberaFila (Fila* f) LIBERA A FILA
+
+void imprimeFila (Fila* f)IMPRIME A FILA
+*/
+typedef struct nos
+{
+    state info;
+    struct nos *prox;
+}Nos;
+
+typedef struct fila
+{
+    Nos * ini;
+    Nos * fim;
+} Fila;
+
+int VaziaFila (Fila* f)
+{
+    if (f->ini==NULL) return 1;
+    return 0;
+
+}
+
+
+Fila* CriaFila ()
+{
+    Fila* f = (Fila*) malloc(sizeof(Fila));
+    f->ini = f->fim = NULL;
+    return f;
+}
+
+Nos* ins_fim (Nos *fim, state A)
+{
+    Nos *p = (Nos*)malloc(sizeof(Nos));
+    p->info = A;
+    p->prox = NULL;
+    if (fim != NULL) /* verifica se lista não estava vazia */
+    fim->prox = p;
+    return p;
+}
+
+void InsereFila (Fila* f, state v)
+{
+    f->fim = ins_fim(f->fim,v);
+    if (f->ini==NULL) /* fila antes vazia? */
+    f->ini = f->fim;
+}
+
+Nos* retira_ini (Nos* ini)
+{
+    Nos* p = ini->prox;
+    free(ini);
+    return p;
+}
+
+int RetiraFila (Fila* f)
+{
+    int v;
+    if (VaziaFila(f))
+    {
+        printf("Fila vazia.\n");
+        exit(0); /* aborta programa */
+    }
+    v = f->ini->info;
+    f->ini = retira_ini(f->ini);
+    if (f->ini == NULL) /* fila ficou vazia? */
+    f->fim = NULL;
+    return v;
+}
+
+void imprimeFila (Fila* f)
+{
+    Nos* q;
+    printf("\n\t\t");
+    for (q=f->ini; q!=NULL; q=q->prox)
+    {
+        printf("%d - ",q->info);
+    }
+    printf("\n");
+}
+
+
+Fila* liberaFila (Fila* f)
+{
+    Nos* q = f->ini;
+    while (q!=NULL)
+    {
+        Nos* t = q->prox;
+        free(q);
+        q = t;
+    }
+    free(f);
+    return NULL;
+}
+
+
 //Jogo
 typedef struct state{
     int tabu[TAM][TAM];
     int moviveis[4];
     int posmoviveis[4][2];
-    struct state prox*;
     int prof=0;
 }state;
-
+typedef struct {
+    state** states;
+    int qtd;
+    int maximo ;
+}statesVisitados;
 void randArray(int array[])
 {
     for(int i = N - 1; i > 0; i--)
@@ -259,21 +368,43 @@ void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pon
         }
     }
 }
-void iddfs(state Estado, ){
+int contamoviveis(state estado){
+    cont=2;
+    for(int i = 2; i<4;i++){
+        if(estado->moviveis[i]<8&&estado->moviveis[i]>1){
+            cont++;
+        }
+    }
+}   return cont;
+void bfs(state Estado){
     int pontop[2], posmoviveis[4][2];
-    acharVazio(Estado->tabu,pontop);
-    achaMoviveis(posmoviveis,Estado->tabu,pontop,Estado->moviveis);
+    Fila *f=NULL;
+    f=CriaFila();
+    InsereFila(f,Estado);
+    
+    
+}
+void iddfs(state Estado){
+    int pontop[2], posmoviveis[4][2];
+    Pilha *p=NULL;
+    p=CriaPilha();
+    push(p,Estado);
     while(Estado->prof<MAX){
+        
+        acharVazio(Estado->tabu,pontop);
+        achaMoviveis(posmoviveis,Estado->tabu,pontop,Estado->moviveis);
         for(int i =1;i<10;i++){
             if(numeroValido(i,Estado->moviveis)){
-                moverPeca(Estado->tabu,i,Estado->moviveis,posmoviveis);
                 
-            }
         }
         
         Estado->prof++;
     }
+        
+    }
+    
 }
+
 //Verifica se o jogador venceu
 bool verificaVitoria(int m[TAM][TAM]){
     int esperado[TAM][TAM] = {
