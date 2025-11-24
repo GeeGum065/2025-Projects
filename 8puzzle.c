@@ -240,11 +240,23 @@ bool verificavisitado(statesVisitados* sv, state* State){
     return false;
 }
 void dstrstatesvisitados(statesVisitados* sv){
+    // O estado inicial pode ter sido alocado fora do bfs e não deve ser liberado aqui.
+    // A função addstates só aloca se precisar redimensionar, mas os *estados* em si
+    // são alocados no bfs e não no addstates.
+    // É mais seguro liberar apenas os nós da lista de visitados se eles foram alocados
+    // pelo bfs, mas neste código, a lista 'states' do statesVisitados armazena
+    // ponteiros para os estados, que são alocados em 'bfs' ou 'main'.
+    // A lógica de liberação aqui assume que todos os estados *após* o Inicial
+    // foram alocados em bfs. A abordagem mais segura é liberar a memória
+    // do array de ponteiros e o próprio statesVisitados.
+    // No seu código original, você tenta liberar todos os estados na lista.
+    // Vamos manter a liberação dos estados, assumindo que *todos* os estados
+    // exceto o 'Inicial' foram alocados em 'bfs'.
     for(int i =0;i<sv->qtd;i++){
-        free(sv->states[i]);
+        free(sv->states[i]); // Libera o estado (struct state)
     }
-    free(sv->states);
-    free(sv);
+    free(sv->states); // Libera o array de ponteiros
+    free(sv); // Libera a struct statesVisitados
 }
 void randArray(int array[])
 {
@@ -431,72 +443,113 @@ bool verificaVitoria(int m[TAM][TAM]){
     return true;
 }
 void bfs(state* Estado){
-    int pontop[2], posMoviveis[4][2], movimentaveis[4];
+    int pontop[2];
+    
+    // Aloca a fila e a estrutura de estados visitados
     Fila *f = CriaFila();
     statesVisitados* visitados = criarVisitados();
 
+    // O estado 'Estado' é o estado inicial, alocado no main.
     InsereFila(f, Estado);
     addstates(visitados, Estado);
+
+    printf("\nIniciando busca BFS...\n");
 
     while(!VaziaFila(f)){
         state* atual = RetiraFila(f);
 
+        // Verifica se é o estado objetivo
         if(verificaVitoria(atual->tabu)){
-            printf("\nAchei a solução!\nForam explorados %d estados.\n", visitados->qtd);
+            printf("\n✅ Achei a solução!\nForam explorados %d estados.\n", visitados->qtd);
             imprimirTabu(atual->tabu);
-            dstrstatesvisitados(visitados);
+            
+            // Libera a memória da fila e da lista de visitados
+            // O estado 'Inicial' (o primeiro adicionado/removido) deve ser liberado
+            // pelo chamador (main) se não for liberado aqui.
+            // Para simplificar, vamos garantir que o 'Estado' inicial seja liberado
+            // no final do main ou fora do dstrstatesvisitados.
             liberaFila(f);
+            dstrstatesvisitados(visitados);
             return;
         }
 
-        // Calcula movimentos possiveis do estado atual
+        // 1. Calcula a posição vazia e movimentos possíveis do estado atual
         acharVazio(atual->tabu, pontop);
+        // Os vetores moviveis e posmoviveis do estado atual devem ser recalculados
+        // aqui, pois o estado 'atual' pode ter sido modificado por engano (mas foi corrigido).
+        // Para consistência, vamos usar os campos internos do 'atual'.
         achaMoviveis(atual->posmoviveis, atual->tabu, pontop, atual->moviveis);
 
-        // Tenta cada um dos 4 movimentos
+        // 2. Tenta cada um dos 4 movimentos
         for(int i = 0; i < 4; i++){
-            if(atual->moviveis[i] == -1){ // movimento inexistente
-                continue;
+            // Checa se o movimento é válido
+            if(atual->moviveis[i] == -1){ 
+                continue; // Movimento inexistente
             }
-            // Criar novo estado
+            
+            // a. Criar e alocar novo estado
             state* proximo = (state*)malloc(sizeof(state));
-
-            // Copiar tabu atual para o novo
+            
+            // b. Copiar tabuleiro atual para o novo estado (É CRUCIAL FAZER ISSO ANTES DE MOVER)
             for(int x = 0; x < TAM; x++){
                 for(int y = 0; y < TAM; y++){
                     proximo->tabu[x][y] = atual->tabu[x][y];
                 }
             }
-            // Aplicar movimento
-            moverPeca(proximo->tabu,atual->moviveis[i],atual->moviveis,atual->posmoviveis,pontop);
+            
+            // c. Aplicar o movimento NO NOVO ESTADO (proximo->tabu)
+            // A posição da peça a ser movida é dada por atual->posmoviveis[i].
+            // A posição do vazio no tabuleiro de 'proximo' é a mesma que em 'atual'.
+            
+            int linhaPeca = atual->posmoviveis[i][0];
+            int colunaPeca = atual->posmoviveis[i][1];
 
-            // Calcular moviveis do novo estado
-            acharVazio(proximo->tabu, pontop);
-            achaMoviveis(proximo->posmoviveis, proximo->tabu, pontop, proximo->moviveis);
-
-            // Se o estado ainda nao foi visitado, colocar na fila
+            // Troca o valor da peça e do vazio no novo tabuleiro
+            proximo->tabu[pontop[0]][pontop[1]] = proximo->tabu[linhaPeca][colunaPeca]; // Põe a peça no vazio antigo
+            proximo->tabu[linhaPeca][colunaPeca] = -1; // Põe o vazio na posição da peça
+            
+            // d. Calcular moviveis do novo estado (não estritamente necessário para o BFS, mas bom para consistência)
+            // acharVazio(proximo->tabu, pontop); // O novo vazio é (linhaPeca, colunaPeca)
+            // achaMoviveis(proximo->posmoviveis, proximo->tabu, (int[2]){linhaPeca, colunaPeca}, proximo->moviveis);
+            
+            // e. Se o estado ainda nao foi visitado, colocar na fila
             if(!verificavisitado(visitados, proximo)){
                 addstates(visitados, proximo);
                 InsereFila(f, proximo);
-            
+                imprimirTabu(proximo->tabu);
+                // Imprime a cada passo para visualização (opcional e lento)
+                // imprimirTabu(proximo->tabu);
+                // sleep(1); 
             } else {
-                // Se já foi visitado, liberar a memória
+                // f. Se já foi visitado, liberar a memória do estado alocado (proximo)
                 free(proximo);
             }
         }
     }
     
     // Se chegou aqui, não encontrou solução
-    printf("\nNão foi possível encontrar uma solução.\n");
+    printf("\n❌ Não foi possível encontrar uma solução.\n");
     printf("Estados explorados: %d\n", visitados->qtd);
-    dstrstatesvisitados(visitados);
     liberaFila(f);
+    dstrstatesvisitados(visitados);
 }
+    
+    
 
-void iddfs(state Estado){
+
+void iddfs(state* Estado){
     int pontop[2], posmoviveis[4][2];
     Pilha *p=NULL;
+    int l = 0;
     p=CriaPilha();
+    statesVisitados* visitados = criarVisitados();
+    push(f,Estado);
+    addstates(visitados, Estado);
+    printf("\nIniciando busca IDDFS...\n");
+    
+    while(!vaziaPilha(p)){
+        
+    }
     
     
 }
@@ -589,6 +642,9 @@ int main()
                 Inicial->tabu[x][y] = tabuleiro[x][y];
                 }
         }
+        printf("\ntabuleiro inicial:\n");
+        imprimirTabu(Inicial->tabu);
+        sleep(2);
         acharVazio(Inicial->tabu, ponto);
         achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
         
