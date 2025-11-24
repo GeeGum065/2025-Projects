@@ -202,7 +202,7 @@ Fila* liberaFila (Fila* f)
 //Jogo
 
 statesVisitados* criarVisitados(){
-    int max =500;
+    int max =1000;
     statesVisitados* sv = (statesVisitados*)malloc(sizeof(statesVisitados));
     sv->states = (state**)malloc(sizeof(state*)*max);
     sv->maximo=max;
@@ -479,10 +479,20 @@ void bfs(state* Estado){
                 addstates(visitados, proximo);
                 InsereFila(f, proximo);
             
+            } else {
+                // Se já foi visitado, liberar a memória
+                free(proximo);
+            }
         }
     }
+    
+    // Se chegou aqui, não encontrou solução
+    printf("\nNão foi possível encontrar uma solução.\n");
+    printf("Estados explorados: %d\n", visitados->qtd);
+    dstrstatesvisitados(visitados);
+    liberaFila(f);
 }
-}
+
 void iddfs(state Estado){
     int pontop[2], posmoviveis[4][2];
     Pilha *p=NULL;
@@ -574,13 +584,14 @@ int main()
     if(opcao==1){
         state* Inicial=malloc(sizeof(state));
         int ponto[2]={-1,-1};
-        acharVazio(Inicial->tabu, ponto);
-        achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
         for(int x = 0; x < TAM; x++){
-                for(int y = 0; y < TAM; y++){
-                    Inicial->tabu[x][y] = tabuleiro[x][y];
+            for(int y = 0; y < TAM; y++){
+                Inicial->tabu[x][y] = tabuleiro[x][y];
                 }
         }
+        acharVazio(Inicial->tabu, ponto);
+        achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
+        
         bfs(Inicial);
     }
     return 0;
