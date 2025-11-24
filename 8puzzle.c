@@ -543,16 +543,82 @@ void iddfs(state* Estado){
     int l = 0;
     p=CriaPilha();
     statesVisitados* visitados = criarVisitados();
-    push(f,Estado);
+    push(p,Estado);
     addstates(visitados, Estado);
     printf("\nIniciando busca IDDFS...\n");
     
     while(!vaziaPilha(p)){
-        
+            state* atual = pop(p);
+            if(verificaVitoria(atual->tabu)){
+                printf("\n✅ Achei a solução!\nForam explorados %d estados.\n", visitados->qtd);
+                imprimirTabu(atual->tabu);
+            
+            // Libera a memória da fila e da lista de visitados
+            // O estado 'Inicial' (o primeiro adicionado/removido) deve ser liberado
+            // pelo chamador (main) se não for liberado aqui.
+            // Para simplificar, vamos garantir que o 'Estado' inicial seja liberado
+            // no final do main ou fora do dstrstatesvisitados.
+                liberaPilha(p);
+                dstrstatesvisitados(visitados);
+                return;
+        }
+         // 1. Calcula a posição vazia e movimentos possíveis do estado atual
+        acharVazio(atual->tabu, pontop);
+        // Os vetores moviveis e posmoviveis do estado atual devem ser recalculados
+        // aqui, pois o estado 'atual' pode ter sido modificado por engano (mas foi corrigido).
+        // Para consistência, vamos usar os campos internos do 'atual'.
+        achaMoviveis(atual->posmoviveis, atual->tabu, pontop, atual->moviveis);
+
+        // 2. Tenta cada um dos 4 movimentos
+        for(int i = 0; i < 4; i++){
+            // Checa se o movimento é válido
+            if(atual->moviveis[i] == -1){ 
+                continue; // Movimento inexistente
+            }
+            
+            // a. Criar e alocar novo estado
+            state* proximo = (state*)malloc(sizeof(state));
+            
+            // b. Copiar tabuleiro atual para o novo estado (É CRUCIAL FAZER ISSO ANTES DE MOVER)
+            for(int x = 0; x < TAM; x++){
+                for(int y = 0; y < TAM; y++){
+                    proximo->tabu[x][y] = atual->tabu[x][y];
+                }
+            }
+            
+            // c. Aplicar o movimento NO NOVO ESTADO (proximo->tabu)
+            // A posição da peça a ser movida é dada por atual->posmoviveis[i].
+            // A posição do vazio no tabuleiro de 'proximo' é a mesma que em 'atual'.
+            
+            int linhaPeca = atual->posmoviveis[i][0];
+            int colunaPeca = atual->posmoviveis[i][1];
+
+            // Troca o valor da peça e do vazio no novo tabuleiro
+            proximo->tabu[pontop[0]][pontop[1]] = proximo->tabu[linhaPeca][colunaPeca]; // Põe a peça no vazio antigo
+            proximo->tabu[linhaPeca][colunaPeca] = -1; // Põe o vazio na posição da peça
+            
+            // d. Calcular moviveis do novo estado (não estritamente necessário para o BFS, mas bom para consistência)
+            // acharVazio(proximo->tabu, pontop); // O novo vazio é (linhaPeca, colunaPeca)
+            // achaMoviveis(proximo->posmoviveis, proximo->tabu, (int[2]){linhaPeca, colunaPeca}, proximo->moviveis);
+            
+            // e. Se o estado ainda nao foi visitado, colocar na fila
+            if(!verificavisitado(visitados, proximo)){
+                addstates(visitados, proximo);
+                push(p, proximo);
+                
+                // Imprime a cada passo para visualização (opcional e lento)
+                // imprimirTabu(proximo->tabu);
+                // sleep(1); 
+            } else {
+                // f. Se já foi visitado, liberar a memória do estado alocado (proximo)
+                free(proximo);
+            }
+        }
     }
-    
-    
+        
+        
 }
+    
 
 
 
@@ -649,6 +715,22 @@ int main()
         achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
         
         bfs(Inicial);
+    }
+    if(opcao==2){
+        state* Inicial=malloc(sizeof(state));
+        int ponto[2]={-1,-1};
+        for(int x = 0; x < TAM; x++){
+            for(int y = 0; y < TAM; y++){
+                Inicial->tabu[x][y] = tabuleiro[x][y];
+                }
+        }
+        printf("\ntabuleiro inicial:\n");
+        imprimirTabu(Inicial->tabu);
+        sleep(2);
+        acharVazio(Inicial->tabu, ponto);
+        achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
+        
+        iddfs(Inicial);
     }
     return 0;
 }
