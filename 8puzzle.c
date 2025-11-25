@@ -3,125 +3,48 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
-#include <math.h>
 #include <unistd.h>
 
 //Parâmetros
 #define N 9
 #define TAM 3
-#define MAX 5
+#define PROFUNDIDADE_MAXIMA 50
 
 //Números Aleatórios
 static inline int rand_int(int a, int b) {
     return a + rand() % (b - a + 1);
 }
 
-static inline double rand_unit() {
-    return (double)rand() / (double)(RAND_MAX);
-}
+// ==================== ESTRUTURAS ====================
 typedef struct state{
     int tabu[TAM][TAM];
     int moviveis[4];
     int posmoviveis[4][2];
-}state;
+    int profundidade;
+} state;
+
 typedef struct {
     int maximo;
     state** states;
     int qtd;
-}statesVisitados;
+} statesVisitados;
+
 typedef struct no
 {
     state* info;
     struct no *prox;
-}No;
+} No;
 
 typedef struct pilha
 {
    No *Topo;
-}Pilha;
+} Pilha;
 
-int vaziaPilha(Pilha *p)
-{
-    if (p->Topo==NULL)
-    {
-        return 1; //pilha vazia
-    }
-    return 0;
-}
-
-Pilha* CriaPilha (void)
-{
-     Pilha *p;
-     p=(Pilha*)malloc(sizeof(Pilha));
-     p->Topo = NULL;
-   return p;
-}
-
-No* ins_ini (No* t, state* a)
-{
-    No* aux = (No*) malloc(sizeof(No));
-    aux->info = a;
-    aux->prox = t;
-    return aux;
-}
-
-void push (Pilha* p, state* v)
-{
-    p->Topo = ins_ini(p->Topo,v);
-}
-
-No* ret_ini (No* aux)
-{
-    No* p = aux->prox;
-    free(aux);
-    return p;
-}
-
-state* pop (Pilha *p)
-{
-    state* v;
-    if (vaziaPilha(p))
-    {
-        printf("\n\n\t==> Pilha VAZIA, IMPOSSIVEL CONTINUAR.\b\n");
-        exit(1); /* aborta programa */
-    }
-    v = p->Topo->info;
-    p->Topo = ret_ini(p->Topo);
-    return v;
-}
-
-Pilha* liberaPilha (Pilha *p) //APAGA TODA PILHA
-{
-    No *q = p->Topo;
-    while (q!=NULL)
-    {
-        No* t = q->prox;
-        free(q);
-        q = t;
-    }
-    free(p);
-    return(NULL);
-}
-
-/* FUNÇÕES DE MANIPULAÇÃO DE PFILA
-
-Fila* CriaFila()  CRIA A FILA
-
-int VaziaFila (Fila* f) VERIFICA SE A FILA ESTÁ VAIZA
-
-void InsereFila (Fila* f, int v) INSERÇÃO
-
-int RetiraFila (Fila* f) REMOÇÃO
-
-Fila* liberaFila (Fila* f) LIBERA A FILA
-
-void imprimeFila (Fila* f)IMPRIME A FILA
-*/
 typedef struct nos
 {
     state* info;
     struct nos *prox;
-}Nos;
+} Nos;
 
 typedef struct fila
 {
@@ -129,13 +52,59 @@ typedef struct fila
     Nos * fim;
 } Fila;
 
-int VaziaFila (Fila* f)
+// ==================== FUNÇÕES DE PILHA ====================
+int vaziaPilha(Pilha *p)
 {
-    if (f->ini==NULL) return 1;
-    return 0;
-
+    return (p->Topo == NULL);
 }
 
+Pilha* CriaPilha (void)
+{
+    Pilha* p = (Pilha*)malloc(sizeof(Pilha));
+    p->Topo = NULL;
+    return p;
+}
+
+void push (Pilha* p, state* v)
+{
+    No* aux = (No*) malloc(sizeof(No));
+    aux->info = v;
+    aux->prox = p->Topo;
+    p->Topo = aux;
+}
+
+state* pop (Pilha *p)
+{
+    if (vaziaPilha(p))
+    {
+        printf("\n\n\t==> Pilha VAZIA.\n");
+        exit(1);
+    }
+    state* v = p->Topo->info;
+    No* temp = p->Topo;
+    p->Topo = p->Topo->prox;
+    free(temp);
+    return v;
+}
+
+Pilha* liberaPilha (Pilha *p)
+{
+    No *q = p->Topo;
+    while (q != NULL)
+    {
+        No* t = q->prox;
+        free(q);
+        q = t;
+    }
+    free(p);
+    return NULL;
+}
+
+// ==================== FUNÇÕES DE FILA ====================
+int VaziaFila (Fila* f)
+{
+    return (f->ini == NULL);
+}
 
 Fila* CriaFila ()
 {
@@ -144,51 +113,38 @@ Fila* CriaFila ()
     return f;
 }
 
-Nos* ins_fim (Nos *fim, state* A)
-{
-    Nos *p = (Nos*)malloc(sizeof(Nos));
-    p->info = A;
-    p->prox = NULL;
-    if (fim != NULL) /* verifica se lista não estava vazia */
-    fim->prox = p;
-    return p;
-}
-
 void InsereFila (Fila* f, state* v)
 {
-    f->fim = ins_fim(f->fim,v);
-    if (f->ini==NULL) /* fila antes vazia? */
-    f->ini = f->fim;
-}
-
-Nos* retira_ini (Nos* ini)
-{
-    Nos* p = ini->prox;
-    free(ini);
-    return p;
+    Nos* p = (Nos*)malloc(sizeof(Nos));
+    p->info = v;
+    p->prox = NULL;
+    if (f->fim != NULL)
+        f->fim->prox = p;
+    f->fim = p;
+    if (f->ini == NULL)
+        f->ini = f->fim;
 }
 
 state* RetiraFila (Fila* f)
 {
-    state* v;
     if (VaziaFila(f))
     {
         printf("Fila vazia.\n");
-        exit(0); /* aborta programa */
+        exit(0);
     }
-    v = f->ini->info;
-    f->ini = retira_ini(f->ini);
-    if (f->ini == NULL) /* fila ficou vazia? */
-    f->fim = NULL;
+    state* v = f->ini->info;
+    Nos* temp = f->ini;
+    f->ini = f->ini->prox;
+    if (f->ini == NULL)
+        f->fim = NULL;
+    free(temp);
     return v;
 }
-
-
 
 Fila* liberaFila (Fila* f)
 {
     Nos* q = f->ini;
-    while (q!=NULL)
+    while (q != NULL)
     {
         Nos* t = q->prox;
         free(q);
@@ -198,39 +154,37 @@ Fila* liberaFila (Fila* f)
     return NULL;
 }
 
-
-//Jogo
-
+// ==================== FUNÇÕES DE ESTADOS VISITADOS ====================
 statesVisitados* criarVisitados(){
-    int max =1000;
     statesVisitados* sv = (statesVisitados*)malloc(sizeof(statesVisitados));
-    sv->states = (state**)malloc(sizeof(state*)*max);
-    sv->maximo=max;
-    sv->qtd=0;
+    sv->states = (state**)malloc(sizeof(state*) * 1000);
+    sv->maximo = 1000;
+    sv->qtd = 0;
     return sv;
 }
+
 void addstates(statesVisitados* sv, state* State){
-    if(sv->qtd>=sv->maximo){
-        int novomax = sv->maximo*2;
-        state** novosstates = (state**)malloc(sizeof(state*)*novomax);
-        for(int i =0;i<sv->qtd;i++){
-            novosstates[i]=sv->states[i];
+    if(sv->qtd >= sv->maximo){
+        int novomax = sv->maximo * 2;
+        state** novosstates = (state**)realloc(sv->states, sizeof(state*) * novomax);
+        if(novosstates == NULL){
+            perror("realloc falhou");
+            exit(1);
         }
-        free(sv->states);
-    
-    sv->states = novosstates;
-    sv->maximo = novomax;
+        sv->states = novosstates;
+        sv->maximo = novomax;
     }
-    sv->states[sv->qtd++]=State;
+    sv->states[sv->qtd++] = State;
 }
+
 bool verificavisitado(statesVisitados* sv, state* State){
-    for(int i = 0; i< sv->qtd; i++){
-        state* atual = sv ->states[i];
+    for(int i = 0; i < sv->qtd; i++){
+        state* atual = sv->states[i];
         bool igual = true;
-        for(int j = 0; j<TAM&&igual;j++){
-            for(int k = 0;k<TAM;k++){
-                if(State->tabu[j][k]!=atual->tabu[j][k]){
-                    igual=false;
+        for(int j = 0; j < TAM && igual; j++){
+            for(int k = 0; k < TAM; k++){
+                if(State->tabu[j][k] != atual->tabu[j][k]){
+                    igual = false;
                     break;
                 }
             }
@@ -239,25 +193,16 @@ bool verificavisitado(statesVisitados* sv, state* State){
     }
     return false;
 }
+
 void dstrstatesvisitados(statesVisitados* sv){
-    // O estado inicial pode ter sido alocado fora do bfs e não deve ser liberado aqui.
-    // A função addstates só aloca se precisar redimensionar, mas os *estados* em si
-    // são alocados no bfs e não no addstates.
-    // É mais seguro liberar apenas os nós da lista de visitados se eles foram alocados
-    // pelo bfs, mas neste código, a lista 'states' do statesVisitados armazena
-    // ponteiros para os estados, que são alocados em 'bfs' ou 'main'.
-    // A lógica de liberação aqui assume que todos os estados *após* o Inicial
-    // foram alocados em bfs. A abordagem mais segura é liberar a memória
-    // do array de ponteiros e o próprio statesVisitados.
-    // No seu código original, você tenta liberar todos os estados na lista.
-    // Vamos manter a liberação dos estados, assumindo que *todos* os estados
-    // exceto o 'Inicial' foram alocados em 'bfs'.
-    for(int i =0;i<sv->qtd;i++){
-        free(sv->states[i]); // Libera o estado (struct state)
+    for(int i = 0; i < sv->qtd; i++){
+        free(sv->states[i]);
     }
-    free(sv->states); // Libera o array de ponteiros
-    free(sv); // Libera a struct statesVisitados
+    free(sv->states);
+    free(sv);
 }
+
+// ==================== FUNÇÕES DO JOGO ====================
 void randArray(int array[])
 {
     for(int i = N - 1; i > 0; i--)
@@ -278,35 +223,33 @@ void criaTabu(int mp[TAM][TAM])
     {
         for(int j = 0; j < TAM; j++)
         {
-            mp[i][j] = v[cont];
-            cont++;
+            mp[i][j] = v[cont++];
         }
     }
 }
 
-void acharVazio(int matrix[TAM][TAM],int pontoVazio[2]){
+void acharVazio(int matrix[TAM][TAM], int pontoVazio[2]){
     for(int i = 0; i < TAM; i++){
         for(int j = 0; j < TAM; j++){
             if(matrix[i][j] == -1){
                 pontoVazio[0] = i;
                 pontoVazio[1] = j;
+                return;
             }
         }
     }
 }
 
-//(inversões pares)
 bool verificaSolucao(int array[9]){
     int aux[8];
     int k = 0;
-    
+
     for(int i = 0; i < 9; i++){
         if(array[i] != -1){
-            aux[k] = array[i];
-            k++;
+            aux[k++] = array[i];
         }
     }
-    
+
     int cont = 0;
     for(int i = 0; i < 8; i++){
         for(int j = i + 1; j < 8; j++){
@@ -315,44 +258,41 @@ bool verificaSolucao(int array[9]){
             }
         }
     }
-    
+
     return (cont % 2 == 0);
 }
 
-
 void achaMoviveis(int pos[4][2], int m[TAM][TAM], int pontoVazio[2], int moviveis[4]){
-    acharVazio(m, pontoVazio);
     int linha = pontoVazio[0];
     int coluna = pontoVazio[1];
-    
-    // Inicializa todas as posições como inválidas
+
     for(int i = 0; i < 4; i++){
         pos[i][0] = -1;
         pos[i][1] = -1;
         moviveis[i] = -1;
     }
-    
+
     // Baixo
     if(linha + 1 < TAM){
         pos[0][0] = linha + 1;
         pos[0][1] = coluna;
         moviveis[0] = m[linha + 1][coluna];
     }
-    
+
     // Cima
     if(linha - 1 >= 0){
         pos[1][0] = linha - 1;
         pos[1][1] = coluna;
         moviveis[1] = m[linha - 1][coluna];
     }
-    
+
     // Direita
     if(coluna + 1 < TAM){
         pos[2][0] = linha;
         pos[2][1] = coluna + 1;
         moviveis[2] = m[linha][coluna + 1];
     }
-    
+
     // Esquerda
     if(coluna - 1 >= 0){
         pos[3][0] = linha;
@@ -379,10 +319,8 @@ void imprimirTabu(int m[TAM][TAM])
     }
 }
 
-//Jogador:
-
 void mostrarMoviveis(int moviveis[4]){
-    printf("\nPeças que você pode mover: ");
+    printf("\nPecas que voce pode mover: ");
     bool primeiro = true;
     for(int i = 0; i < 4; i++){
         if(moviveis[i] > 0){
@@ -394,7 +332,6 @@ void mostrarMoviveis(int moviveis[4]){
     printf("\n");
 }
 
-//Verifica se o número escolhido é válido
 bool numeroValido(int num, int moviveis[4]){
     for(int i = 0; i < 4; i++){
         if(moviveis[i] == num){
@@ -404,35 +341,23 @@ bool numeroValido(int num, int moviveis[4]){
     return false;
 }
 
-//Movimenta a peça escolhida
 void moverPeca(int m[TAM][TAM], int num, int moviveis[4], int pos[4][2], int pontoP[2]){
     for(int i = 0; i < 4; i++){
         if(moviveis[i] == num){
-            // Troca a posição do -1 com o número escolhido
             m[pontoP[0]][pontoP[1]] = num;
             m[pos[i][0]][pos[i][1]] = -1;
             return;
         }
     }
 }
-int contamoviveis(state* estado){
-    int cont=2;
-    for(int i = 2; i<4;i++){
-        if(estado->moviveis[i]<8&&estado->moviveis[i]>1){
-            cont++;
-        }
-    }
 
-    return cont;
-}
-//Verifica se o jogador venceu
 bool verificaVitoria(int m[TAM][TAM]){
     int esperado[TAM][TAM] = {
         {1, 2, 3},
         {4, 5, 6},
         {7, 8, -1}
     };
-    
+
     for(int i = 0; i < TAM; i++){
         for(int j = 0; j < TAM; j++){
             if(m[i][j] != esperado[i][j]){
@@ -442,14 +367,41 @@ bool verificaVitoria(int m[TAM][TAM]){
     }
     return true;
 }
+
+void copiarTabuleiro(int destino[TAM][TAM], int origem[TAM][TAM]){
+    for(int x = 0; x < TAM; x++){
+        for(int y = 0; y < TAM; y++){
+            destino[x][y] = origem[x][y];
+        }
+    }
+}
+
+state* criarNovoEstado(state* atual, int movimento){
+    state* proximo = (state*)malloc(sizeof(state));
+
+    copiarTabuleiro(proximo->tabu, atual->tabu);
+    proximo->profundidade = atual->profundidade + 1;
+
+    int pontop[2];
+    acharVazio(atual->tabu, pontop);
+
+    int linhaPeca = atual->posmoviveis[movimento][0];
+    int colunaPeca = atual->posmoviveis[movimento][1];
+
+    proximo->tabu[pontop[0]][pontop[1]] = proximo->tabu[linhaPeca][colunaPeca];
+    proximo->tabu[linhaPeca][colunaPeca] = -1;
+
+    return proximo;
+}
+
+// ==================== ALGORITMO BFS ====================
 void bfs(state* Estado){
     int pontop[2];
-    
-    // Aloca a fila e a estrutura de estados visitados
+
     Fila *f = CriaFila();
     statesVisitados* visitados = criarVisitados();
 
-    // O estado 'Estado' é o estado inicial, alocado no main.
+    Estado->profundidade = 0;
     InsereFila(f, Estado);
     addstates(visitados, Estado);
 
@@ -458,197 +410,195 @@ void bfs(state* Estado){
     while(!VaziaFila(f)){
         state* atual = RetiraFila(f);
 
-        // Verifica se é o estado objetivo
         if(verificaVitoria(atual->tabu)){
-            printf("\n✅ Achei a solução!\nForam explorados %d estados.\n", visitados->qtd);
+            printf("\n==> SOLUCAO ENCONTRADA!\n");
+            printf("Estados explorados: %d\n", visitados->qtd);
+            printf("Profundidade da solucao: %d\n", atual->profundidade);
             imprimirTabu(atual->tabu);
-            
-            // Libera a memória da fila e da lista de visitados
-            // O estado 'Inicial' (o primeiro adicionado/removido) deve ser liberado
-            // pelo chamador (main) se não for liberado aqui.
-            // Para simplificar, vamos garantir que o 'Estado' inicial seja liberado
-            // no final do main ou fora do dstrstatesvisitados.
+
             liberaFila(f);
             dstrstatesvisitados(visitados);
             return;
         }
 
-        // 1. Calcula a posição vazia e movimentos possíveis do estado atual
         acharVazio(atual->tabu, pontop);
-        // Os vetores moviveis e posmoviveis do estado atual devem ser recalculados
-        // aqui, pois o estado 'atual' pode ter sido modificado por engano (mas foi corrigido).
-        // Para consistência, vamos usar os campos internos do 'atual'.
         achaMoviveis(atual->posmoviveis, atual->tabu, pontop, atual->moviveis);
 
-        // 2. Tenta cada um dos 4 movimentos
         for(int i = 0; i < 4; i++){
-            // Checa se o movimento é válido
-            if(atual->moviveis[i] == -1){ 
-                continue; // Movimento inexistente
-            }
-            
-            // a. Criar e alocar novo estado
-            state* proximo = (state*)malloc(sizeof(state));
-            
-            // b. Copiar tabuleiro atual para o novo estado (É CRUCIAL FAZER ISSO ANTES DE MOVER)
-            for(int x = 0; x < TAM; x++){
-                for(int y = 0; y < TAM; y++){
-                    proximo->tabu[x][y] = atual->tabu[x][y];
-                }
-            }
-            
-            // c. Aplicar o movimento NO NOVO ESTADO (proximo->tabu)
-            // A posição da peça a ser movida é dada por atual->posmoviveis[i].
-            // A posição do vazio no tabuleiro de 'proximo' é a mesma que em 'atual'.
-            
-            int linhaPeca = atual->posmoviveis[i][0];
-            int colunaPeca = atual->posmoviveis[i][1];
+            if(atual->moviveis[i] == -1) continue;
 
-            // Troca o valor da peça e do vazio no novo tabuleiro
-            proximo->tabu[pontop[0]][pontop[1]] = proximo->tabu[linhaPeca][colunaPeca]; // Põe a peça no vazio antigo
-            proximo->tabu[linhaPeca][colunaPeca] = -1; // Põe o vazio na posição da peça
-            
-            // d. Calcular moviveis do novo estado (não estritamente necessário para o BFS, mas bom para consistência)
-            // acharVazio(proximo->tabu, pontop); // O novo vazio é (linhaPeca, colunaPeca)
-            // achaMoviveis(proximo->posmoviveis, proximo->tabu, (int[2]){linhaPeca, colunaPeca}, proximo->moviveis);
-            
-            // e. Se o estado ainda nao foi visitado, colocar na fila
+            state* proximo = criarNovoEstado(atual, i);
+
             if(!verificavisitado(visitados, proximo)){
                 addstates(visitados, proximo);
                 InsereFila(f, proximo);
-                imprimirTabu(proximo->tabu);
-                // Imprime a cada passo para visualização (opcional e lento)
-                // imprimirTabu(proximo->tabu);
-                // sleep(1); 
             } else {
-                // f. Se já foi visitado, liberar a memória do estado alocado (proximo)
                 free(proximo);
             }
         }
     }
-    
-    // Se chegou aqui, não encontrou solução
-    printf("\n❌ Não foi possível encontrar uma solução.\n");
+
+    printf("\nNao foi possivel encontrar uma solucao.\n");
     printf("Estados explorados: %d\n", visitados->qtd);
     liberaFila(f);
     dstrstatesvisitados(visitados);
 }
-    
-    
 
-
+// ==================== ALGORITMO IDDFS (SEM RECURSAO) ====================
 void iddfs(state* Estado){
-    int pontop[2], posmoviveis[4][2];
-    Pilha *p=NULL;
-    int l = 0;
-    p=CriaPilha();
-    statesVisitados* visitados = criarVisitados();
-    push(p,Estado);
-    addstates(visitados, Estado);
     printf("\nIniciando busca IDDFS...\n");
-    
-    while(!vaziaPilha(p)){
+
+    int totalExplorados = 0;
+    Estado->profundidade = 0;
+
+    // Loop externo: itera sobre profundidades crescentes
+    for(int limiteProf = 0; limiteProf <= PROFUNDIDADE_MAXIMA; limiteProf++){
+        printf("Buscando na profundidade %d...\n", limiteProf);
+
+        // Cria pilha e visitados para esta iteracao
+        Pilha* p = CriaPilha();
+        statesVisitados* visitados = criarVisitados();
+
+        // Cria copia do estado inicial para esta iteracao
+        state* inicialCopia = (state*)malloc(sizeof(state));
+        copiarTabuleiro(inicialCopia->tabu, Estado->tabu);
+        inicialCopia->profundidade = 0;
+
+        int pontop[2];
+        acharVazio(inicialCopia->tabu, pontop);
+        achaMoviveis(inicialCopia->posmoviveis, inicialCopia->tabu, pontop, inicialCopia->moviveis);
+
+        push(p, inicialCopia);
+        addstates(visitados, inicialCopia);
+
+        bool encontrouSolucao = false;
+
+        // DFS iterativo com limite de profundidade
+        while(!vaziaPilha(p)){
             state* atual = pop(p);
+            totalExplorados++;
+
+            // Verifica se encontrou solucao
             if(verificaVitoria(atual->tabu)){
-                printf("\n✅ Achei a solução!\nForam explorados %d estados.\n", visitados->qtd);
+                printf("\n==> SOLUCAO ENCONTRADA!\n");
+                printf("Estados explorados: %d\n", totalExplorados);
+                printf("Profundidade da solucao: %d\n", atual->profundidade);
                 imprimirTabu(atual->tabu);
-            
-            // Libera a memória da fila e da lista de visitados
-            // O estado 'Inicial' (o primeiro adicionado/removido) deve ser liberado
-            // pelo chamador (main) se não for liberado aqui.
-            // Para simplificar, vamos garantir que o 'Estado' inicial seja liberado
-            // no final do main ou fora do dstrstatesvisitados.
+
+                encontrouSolucao = true;
                 liberaPilha(p);
                 dstrstatesvisitados(visitados);
                 return;
-        }
-         // 1. Calcula a posição vazia e movimentos possíveis do estado atual
-        acharVazio(atual->tabu, pontop);
-        // Os vetores moviveis e posmoviveis do estado atual devem ser recalculados
-        // aqui, pois o estado 'atual' pode ter sido modificado por engano (mas foi corrigido).
-        // Para consistência, vamos usar os campos internos do 'atual'.
-        achaMoviveis(atual->posmoviveis, atual->tabu, pontop, atual->moviveis);
-
-        // 2. Tenta cada um dos 4 movimentos
-        for(int i = 0; i < 4; i++){
-            // Checa se o movimento é válido
-            if(atual->moviveis[i] == -1){ 
-                continue; // Movimento inexistente
             }
-            
-            // a. Criar e alocar novo estado
-            state* proximo = (state*)malloc(sizeof(state));
-            
-            // b. Copiar tabuleiro atual para o novo estado (É CRUCIAL FAZER ISSO ANTES DE MOVER)
-            for(int x = 0; x < TAM; x++){
-                for(int y = 0; y < TAM; y++){
-                    proximo->tabu[x][y] = atual->tabu[x][y];
+
+            // Se atingiu limite de profundidade, nao expande
+            if(atual->profundidade >= limiteProf){
+                continue;
+            }
+
+            // Calcula movimentos possiveis
+            int pontoAtual[2];
+            acharVazio(atual->tabu, pontoAtual);
+            achaMoviveis(atual->posmoviveis, atual->tabu, pontoAtual, atual->moviveis);
+
+            // Expande filhos (em ordem reversa para DFS manter ordem similar)
+            for(int i = 3; i >= 0; i--){
+                if(atual->moviveis[i] == -1) continue;
+
+                state* proximo = criarNovoEstado(atual, i);
+
+                if(!verificavisitado(visitados, proximo)){
+                    addstates(visitados, proximo);
+                    push(p, proximo);
+                } else {
+                    free(proximo);
                 }
             }
-            
-            // c. Aplicar o movimento NO NOVO ESTADO (proximo->tabu)
-            // A posição da peça a ser movida é dada por atual->posmoviveis[i].
-            // A posição do vazio no tabuleiro de 'proximo' é a mesma que em 'atual'.
-            
-            int linhaPeca = atual->posmoviveis[i][0];
-            int colunaPeca = atual->posmoviveis[i][1];
+        }
 
-            // Troca o valor da peça e do vazio no novo tabuleiro
-            proximo->tabu[pontop[0]][pontop[1]] = proximo->tabu[linhaPeca][colunaPeca]; // Põe a peça no vazio antigo
-            proximo->tabu[linhaPeca][colunaPeca] = -1; // Põe o vazio na posição da peça
-            
-            // d. Calcular moviveis do novo estado (não estritamente necessário para o BFS, mas bom para consistência)
-            // acharVazio(proximo->tabu, pontop); // O novo vazio é (linhaPeca, colunaPeca)
-            // achaMoviveis(proximo->posmoviveis, proximo->tabu, (int[2]){linhaPeca, colunaPeca}, proximo->moviveis);
-            
-            // e. Se o estado ainda nao foi visitado, colocar na fila
-            if(!verificavisitado(visitados, proximo)){
-                addstates(visitados, proximo);
-                push(p, proximo);
-                
-                // Imprime a cada passo para visualização (opcional e lento)
-                // imprimirTabu(proximo->tabu);
-                // sleep(1); 
-            } else {
-                // f. Se já foi visitado, liberar a memória do estado alocado (proximo)
-                free(proximo);
-            }
+        // Libera memoria desta iteracao
+        liberaPilha(p);
+        dstrstatesvisitados(visitados);
+
+        if(encontrouSolucao){
+            return;
         }
     }
-        
-        
+
+    printf("\nNao foi possivel encontrar solucao ate profundidade %d.\n", PROFUNDIDADE_MAXIMA);
+    printf("Estados explorados: %d\n", totalExplorados);
 }
-    
 
-
-
-int main()
-{
-    srand(time(NULL));
-    
+// ==================== MODO JOGADOR ====================
+void modoJogador(int tabuleiro[TAM][TAM]){
     int cordenadaPO[2];
     int moviveis[4];
-    int tabuleiro[TAM][TAM];
     int pos[4][2];
     int escolha;
     int movimentos = 0;
+
+    printf("\n=== MODO JOGADOR ===\n");
+
+    while(true){
+        imprimirTabu(tabuleiro);
+
+        if(verificaVitoria(tabuleiro)){
+            printf("\nPARABENS! Voce venceu em %d movimentos!\n\n", movimentos);
+            break;
+        }
+
+        acharVazio(tabuleiro, cordenadaPO); // <-- corrigido: inicializa a coordenada vazia antes de achar moviveis
+        achaMoviveis(pos, tabuleiro, cordenadaPO, moviveis);
+        mostrarMoviveis(moviveis);
+
+        printf("\nDigite o numero que deseja mover (0 para sair): ");
+        if(scanf("%d", &escolha) != 1){
+            printf("Entrada invalida!\n");
+            while(getchar() != '\n');
+            continue;
+        }
+
+        if(escolha == 0){
+            printf("Jogo encerrado. Voce fez %d movimentos.\n", movimentos);
+            break;
+        }
+
+        if(numeroValido(escolha, moviveis)){
+            moverPeca(tabuleiro, escolha, moviveis, pos, cordenadaPO);
+            movimentos++;
+        } else {
+            printf("\nO numero %d nao pode ser movido!\n", escolha);
+            sleep(1);
+        }
+        system("clear");
+    }
+}
+
+// ==================== FUNÇÃO PRINCIPAL ====================
+int main()
+{
+    srand(time(NULL));
+
+    int tabuleiro[TAM][TAM];
     int v[N];
     int opcao;
-    // Gera tabuleiro solucionável
+
+    // Gera tabuleiro solucionavel
     do {
         criaTabu(tabuleiro);
         int k = 0;
         for(int i = 0; i < TAM; i++){
             for(int j = 0; j < TAM; j++){
-                v[k] = tabuleiro[i][j];
-                k++;
+                v[k++] = tabuleiro[i][j];
             }
         }
     } while(!verificaSolucao(v));
-    
-    printf("=== 8-PUZZLE ===\n");
-    printf("Objetivo: Organize os números de 1 a 8 em ordem.\n");
-    printf("Configuração final:\n");
+
+    printf("===============================================\n");
+    printf("             8-PUZZLE GAME                     \n");
+    printf("===============================================\n\n");
+    printf("Objetivo: Organize os numeros de 1 a 8 em ordem.\n");
+    printf("Configuracao final:\n");
     printf("-------------\n");
     printf("| 1 | 2 | 3 |\n");
     printf("-------------\n");
@@ -656,81 +606,58 @@ int main()
     printf("-------------\n");
     printf("| 7 | 8 | . |\n");
     printf("-------------\n\n");
-    printf("0:Jogar normalmente\n1:resolver por bfs\n2:resolver por iddfs\n");
-    printf("digite a opção para jogar:\n");
-    scanf("%d",&opcao);
-    // Loop principal do jogo
-        //case 0:
-        if(opcao==0){
-        while(true){
-            imprimirTabu(tabuleiro);
-        
-            // Verifica vitória
-            if(verificaVitoria(tabuleiro)){
-            printf("\nVocê venceu em %d movimentos!\n\n", movimentos);
+
+    printf("Tabuleiro Inicial:");
+    imprimirTabu(tabuleiro);
+
+    printf("\n===============================================\n");
+    printf("               MENU PRINCIPAL                  \n");
+    printf("===============================================\n");
+    printf("0 - Jogar manualmente\n");
+    printf("1 - Resolver com BFS\n");
+    printf("2 - Resolver com IDDFS\n");
+    printf("===============================================\n");
+    printf("Digite sua opcao: ");
+    scanf("%d", &opcao);
+
+    switch(opcao){
+        case 0:
+            modoJogador(tabuleiro);
             break;
-            }
-        
-            // Encontra movimentos possíveis
-            achaMoviveis(pos, tabuleiro, cordenadaPO, moviveis);
-            mostrarMoviveis(moviveis);
-        
-        // Solicita jogada
-            printf("\nDigite o número que deseja mover (0 para sair): ");
-            if(scanf("%d", &escolha) != 1){
-                printf("Entrada inválida!\n");
-                while(getchar() != '\n');
-                continue;
-            }
-        
-            if(escolha == 0){
-                printf("Jogo encerrado. Você fez %d movimentos.\n", movimentos);
-                break;
-            }
-        
-        // Valida e executa movimento
-            if(numeroValido(escolha, moviveis)){
-                moverPeca(tabuleiro, escolha, moviveis, pos, cordenadaPO);
-                movimentos++;
-            } else {
-                printf("\nO número %d não pode ser movido!\n", escolha);
-                sleep(2);
-            }
-            system("clear");
-            
-    }
-    }
-    if(opcao==1){
-        state* Inicial=malloc(sizeof(state));
-        int ponto[2]={-1,-1};
-        for(int x = 0; x < TAM; x++){
-            for(int y = 0; y < TAM; y++){
-                Inicial->tabu[x][y] = tabuleiro[x][y];
-                }
+
+        case 1:
+        {
+            state* Inicial = (state*)malloc(sizeof(state));
+            int ponto[2] = {-1, -1};
+
+            copiarTabuleiro(Inicial->tabu, tabuleiro);
+            acharVazio(Inicial->tabu, ponto);
+            achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
+            Inicial->profundidade = 0;
+
+            bfs(Inicial);
+            break;
         }
-        printf("\ntabuleiro inicial:\n");
-        imprimirTabu(Inicial->tabu);
-        sleep(2);
-        acharVazio(Inicial->tabu, ponto);
-        achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
-        
-        bfs(Inicial);
-    }
-    if(opcao==2){
-        state* Inicial=malloc(sizeof(state));
-        int ponto[2]={-1,-1};
-        for(int x = 0; x < TAM; x++){
-            for(int y = 0; y < TAM; y++){
-                Inicial->tabu[x][y] = tabuleiro[x][y];
-                }
+
+        case 2:
+        {
+            state* Inicial = (state*)malloc(sizeof(state));
+            int ponto[2] = {-1, -1};
+
+            copiarTabuleiro(Inicial->tabu, tabuleiro);
+            acharVazio(Inicial->tabu, ponto);
+            achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
+            Inicial->profundidade = 0;
+
+            iddfs(Inicial);
+            free(Inicial);
+            break;
         }
-        printf("\ntabuleiro inicial:\n");
-        imprimirTabu(Inicial->tabu);
-        sleep(2);
-        acharVazio(Inicial->tabu, ponto);
-        achaMoviveis(Inicial->posmoviveis, Inicial->tabu, ponto, Inicial->moviveis);
-        
-        iddfs(Inicial);
+
+        default:
+            printf("\nOpcao invalida!\n");
+            break;
     }
+
     return 0;
 }
